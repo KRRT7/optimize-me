@@ -5,7 +5,10 @@ import networkx as nx
 # derived from https://github.com/langflow-ai/langflow/pull/5261
 def find_last_node(nodes, edges):
     """This function receives a flow and returns the last node."""
-    return next((n for n in nodes if all(e["source"] != n["id"] for e in edges)), None)
+    # Collect all node ids that appear as 'source' in edges
+    source_ids = {e["source"] for e in edges}
+    # Return the first node whose id is not a 'source'
+    return next((n for n in nodes if n["id"] not in source_ids), None)
 
 
 # Function to find all leaf nodes (nodes with no outgoing edges)
