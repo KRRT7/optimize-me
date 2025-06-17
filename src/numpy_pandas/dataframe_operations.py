@@ -34,26 +34,31 @@ def groupby_mean(df: pd.DataFrame, group_col: str, value_col: str) -> dict[Any, 
 def dataframe_merge(
     left: pd.DataFrame, right: pd.DataFrame, left_on: str, right_on: str
 ) -> pd.DataFrame:
-    result_data = []
+    # Get columns and numpy representations
     left_cols = list(left.columns)
     right_cols = [col for col in right.columns if col != right_on]
+
+    left_vals = left[left_cols].values
+    right_vals = right[right.columns].values
+    left_on_idx = left.columns.get_loc(left_on)
+    right_on_idx = right.columns.get_loc(right_on)
+    right_col_idxs = [right.columns.get_loc(col) for col in right_cols]
+
+    # Build a dict from key -> list of right row values needed
     right_dict = {}
-    for i in range(len(right)):
-        key = right.iloc[i][right_on]
-        if key not in right_dict:
-            right_dict[key] = []
-        right_dict[key].append(i)
-    for i in range(len(left)):
-        left_row = left.iloc[i]
-        key = left_row[left_on]
+    for row in right_vals:
+        key = row[right_on_idx]
+        right_row = [row[i] for i in right_col_idxs]
+        right_dict.setdefault(key, []).append(right_row)
+
+    result_data = []
+    for left_row in left_vals:
+        key = left_row[left_on_idx]
         if key in right_dict:
-            for right_idx in right_dict[key]:
-                right_row = right.iloc[right_idx]
-                new_row = {}
-                for col in left_cols:
-                    new_row[col] = left_row[col]
-                for col in right_cols:
-                    new_row[col] = right_row[col]
+            for right_row in right_dict[key]:
+                # Build merged row as dict
+                new_row = dict(zip(left_cols, left_row))
+                new_row.update(zip(right_cols, right_row))
                 result_data.append(new_row)
     return pd.DataFrame(result_data)
 
@@ -66,14 +71,17 @@ def pivot_table(
 
         def agg_func(values):
             return sum(values) / len(values)
+
     elif aggfunc == "sum":
 
         def agg_func(values):
             return sum(values)
+
     elif aggfunc == "count":
 
         def agg_func(values):
             return len(values)
+
     else:
         raise ValueError(f"Unsupported aggregation function: {aggfunc}")
     grouped_data = {}
@@ -115,10 +123,12 @@ def fillna(df: pd.DataFrame, column: str, value: Any) -> pd.DataFrame:
 def drop_duplicates(df: pd.DataFrame, subset: List[str] = None) -> pd.DataFrame:
     if subset is None:
         subset = df.columns.tolist()
+    # Extract subset columns as a numpy array for efficient access
+    arr = df[subset].to_numpy()
     seen = set()
     keep_indices = []
-    for i in range(len(df)):
-        values = tuple(df.iloc[i][col] for col in subset)
+    # Iterate over rows using the numpy array
+    for i, values in enumerate(map(tuple, arr)):
         if values not in seen:
             seen.add(values)
             keep_indices.append(i)
