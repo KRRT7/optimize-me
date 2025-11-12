@@ -9,11 +9,3 @@ dependencies = [
     "numpy>=2.3.3",
     "pandas>=2.3.3",
 ]
-
-[tool.codeflash]
-# All paths are relative to this pyproject.toml's directory.
-module-root = "src"
-tests-root = "tests"
-test-framework = "pytest"
-ignore-paths = []
-formatter-cmds = ["black $file"]
